@@ -12,10 +12,9 @@ up();
 
 function up() {
   let subprocess = ChildProcess.fork(modulePath, args, {
-    // stdio: 'inherit',
     execArgv: [
       '--require',
-      Path.join(__dirname, 'dear.js'),
+      Path.join(__dirname, 'injection.js'),
       ...process.execArgv,
     ],
   });
@@ -26,7 +25,7 @@ function up() {
     }
 
     switch (message.type) {
-      case 'dear': {
+      case 'setup': {
         let paths = Array.from(new Set([modulePath, ...message.paths]));
         setup(message.timestamp, paths);
         break;

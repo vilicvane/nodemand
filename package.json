@@ -9,7 +9,7 @@
   "bin": "main.js",
   "files": [
     "@cli.js",
-    "dear.js",
+    "injection.js",
     "main.js"
   ],
   "devDependencies": {
