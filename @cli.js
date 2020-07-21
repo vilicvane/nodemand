@@ -32,6 +32,8 @@ const OPTION_DEFINITION_MAP = new Map([
     },
   ],
   ['node-modules', true],
+  ['color', true],
+  ['no-color', true],
 ]);
 
 const args = process.argv.slice(2);

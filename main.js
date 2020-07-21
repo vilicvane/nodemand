@@ -6,12 +6,28 @@ const Path = require('path');
 const Chalk = require('chalk');
 const Chokidar = require('chokidar');
 
-const {options, modulePath, args} = require('./@cli');
+const {
+  options: {debounce: debounceDelay, 'node-modules': toIncludeNodeModules},
+  modulePath,
+  args,
+} = require('./@cli');
+
+let subprocess;
+let exited;
+
+console.info(Chalk.yellow('[nodemand] start'));
 
 up();
 
+process.on('SIGINT', onSignalToExit);
+process.on('SIGTERM', onSignalToExit);
+process.on('SIGHUP', onSignalToExit);
+
 function up() {
-  let subprocess = ChildProcess.fork(modulePath, args, {
+  exited = false;
+
+  subprocess = ChildProcess.fork(modulePath, args, {
+    stdio: 'inherit',
     execArgv: [
       '--require',
       Path.join(__dirname, 'injection.js'),
@@ -34,11 +50,17 @@ function up() {
   });
 
   subprocess.on('exit', code => {
-    console.info(
-      (code ? Chalk.red : Chalk.green)(
-        `[nodemand] process exited with code ${code}`,
-      ),
-    );
+    exited = true;
+
+    if (typeof code === 'number') {
+      console.info(
+        (code ? Chalk.red : Chalk.green)(
+          `[nodemand] process exited with code ${code}`,
+        ),
+      );
+    } else {
+      console.info(Chalk.cyan('[nodemand] process exited'));
+    }
   });
 
   function setup(timestamp, paths) {
@@ -46,7 +68,7 @@ function up() {
       Path.relative(__dirname, path).startsWith('..'),
     );
 
-    if (!options['node-modules']) {
+    if (!toIncludeNodeModules) {
       paths = paths.filter(path => !/[\\/]node_modules[\\/]/.test(path));
     }
 
@@ -79,7 +101,7 @@ function up() {
       if (!restartScheduled) {
         restartScheduled = true;
 
-        console.info(Chalk.yellow(`[nodemand] restart scheduled`));
+        console.info(Chalk.yellow('[nodemand] restart scheduled'));
       }
 
       console.info(`  ${Chalk.dim(path)}`);
@@ -91,22 +113,44 @@ function up() {
           console.error(Chalk.red(error.message));
           process.exit(1);
         });
-      }, options['debounce']);
+      }, debounceDelay);
     }
 
     async function restart() {
       restartStarted = true;
 
-      console.info(Chalk.yellow(`[nodemand] restart`));
-
-      if (subprocess.connected && !subprocess.kill()) {
-        console.error(Chalk.red(`Error killing the process ${subprocess.pid}`));
-        process.exit(1);
-      }
-
       await watcher.close();
+
+      stopSubprocess();
+
+      console.info(Chalk.yellow('[nodemand] restart'));
 
       up();
     }
   }
+}
+
+function onSignalToExit() {
+  stopSubprocess().then(
+    () => process.exit(),
+    error => {
+      console.error(Chalk.red(error.message));
+      process.exit(1);
+    },
+  );
+}
+
+async function stopSubprocess() {
+  if (exited) {
+    return;
+  }
+
+  console.info(Chalk.yellow(`[nodemand] killing process ${subprocess.pid}`));
+
+  if (!subprocess.kill()) {
+    console.error(Chalk.red('Error killing the process'));
+    process.exit(1);
+  }
+
+  await new Promise(resolve => subprocess.on('exit', resolve));
 }
