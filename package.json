@@ -1,7 +1,11 @@
 {
-  "name": "nodear",
+  "name": "nodemand",
   "version": "0.1.0",
   "description": "Restart Node.js process on required modules change.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/makeflow/nodemand.git"
+  },
   "bin": "main.js",
   "files": [
     "@cli.js",

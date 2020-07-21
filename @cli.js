@@ -5,7 +5,7 @@ const Chalk = require('chalk');
 const HELP = `
 ${Chalk.green('USAGE')}
 
-  nodear [options] <module-path> [...args]
+  nodemand [options] <module-path> [...args]
 
 ${Chalk.green('OPTIONS')}
 

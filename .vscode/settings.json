@@ -11,12 +11,6 @@
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
   "eslint.enable": true,
-  "eslint.validate": [
-    "javascript"
-  ],
-  "cSpell.words": [
-    "Mufan",
-    "magicspace",
-    "nodear"
-  ]
+  "eslint.validate": ["javascript"],
+  "cSpell.words": ["Mufan", "magicspace", "nodemand"]
 }

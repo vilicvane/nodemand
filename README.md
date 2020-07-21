@@ -1,6 +1,6 @@
-[![NPM Package](https://badge.fury.io/js/nodear.svg)](https://www.npmjs.com/package/nodear)
+[![NPM Package](https://badge.fury.io/js/nodemand.svg)](https://www.npmjs.com/package/nodemand)
 
-# 🙅‍ Nodear
+# 🙅‍ Nodemand
 
 Restart Node.js process on required modules change.
 
@@ -9,21 +9,21 @@ A light-weight alternative to tools like `nodemon`, watches module files found i
 ## Installation
 
 ```bash
-yarn global add nodear
+yarn global add nodemand
 # or
-npm install --global nodear
+npm install --global nodemand
 ```
 
 ## Usage
 
 ```bash
-nodear server.js
+nodemand server.js
 ```
 
 ## Help
 
 ```bash
-nodear --help
+nodemand --help
 ```
 
 ## License

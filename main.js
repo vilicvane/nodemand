@@ -37,7 +37,7 @@ function up() {
   subprocess.on('exit', code => {
     console.info(
       (code ? Chalk.red : Chalk.green)(
-        `[nodear] process exited with code ${code}`,
+        `[nodemand] process exited with code ${code}`,
       ),
     );
   });
@@ -80,7 +80,7 @@ function up() {
       if (!restartScheduled) {
         restartScheduled = true;
 
-        console.info(Chalk.yellow(`[nodear] restart scheduled`));
+        console.info(Chalk.yellow(`[nodemand] restart scheduled`));
       }
 
       console.info(`  ${Chalk.dim(path)}`);
@@ -98,7 +98,7 @@ function up() {
     async function restart() {
       restartStarted = true;
 
-      console.info(Chalk.yellow(`[nodear] restart`));
+      console.info(Chalk.yellow(`[nodemand] restart`));
 
       if (subprocess.connected && !subprocess.kill()) {
         console.error(Chalk.red(`Error killing the process ${subprocess.pid}`));
