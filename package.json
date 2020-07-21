@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Restart Node.js process on required modules change.",
   "bin": "main.js",
+  "files": [
+    "@cli.js",
+    "dear.js",
+    "main.js"
+  ],
   "devDependencies": {
     "@magicspace/configs": "^0.2.5",
     "@magicspace/eslint-plugin": "^0.1.31",
