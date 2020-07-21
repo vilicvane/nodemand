@@ -121,7 +121,7 @@ function up() {
 
       await watcher.close();
 
-      stopSubprocess();
+      await stopSubprocess();
 
       console.info(Chalk.yellow('[nodemand] restart'));
 
@@ -147,7 +147,7 @@ async function stopSubprocess() {
 
   console.info(Chalk.yellow(`[nodemand] killing process ${subprocess.pid}`));
 
-  if (!subprocess.kill()) {
+  if (!subprocess.kill('SIGTERM')) {
     console.error(Chalk.red('Error killing the process'));
     process.exit(1);
   }
