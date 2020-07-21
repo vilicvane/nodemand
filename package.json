@@ -1,0 +1,16 @@
+{
+  "name": "nodear",
+  "version": "0.1.0",
+  "description": "Restart Node.js process on required modules change.",
+  "bin": "main.js",
+  "devDependencies": {
+    "@magicspace/configs": "^0.2.5",
+    "@magicspace/eslint-plugin": "^0.1.31",
+    "eslint": "^7.5.0",
+    "prettier": "^2.0.5"
+  },
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "chokidar": "^3.4.1"
+  }
+}

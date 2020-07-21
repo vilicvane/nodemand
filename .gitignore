@@ -1,0 +1,24 @@
+# Develepment environment
+
+.idea/
+
+# Installable packages
+
+node_modules/
+
+# Building artifacts
+
+*.tgz
+
+# Debugging outputs
+
+debug/
+*.log
+
+# Testing files
+
+/test.*
+
+# File system
+
+.DS_Store
