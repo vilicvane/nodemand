@@ -7,6 +7,7 @@ const Chalk = require('chalk');
 const Chokidar = require('chokidar');
 
 const {
+  execArgv,
   options: {debounce: debounceDelay, 'node-modules': toIncludeNodeModules},
   modulePath,
   args,
@@ -50,10 +51,11 @@ function up() {
   subprocess = ChildProcess.fork(modulePath, args, {
     stdio: 'inherit',
     execArgv: [
+      ...process.execArgv,
       '--expose-internals',
+      ...execArgv,
       '--require',
       Path.join(__dirname, 'injection.js'),
-      ...process.execArgv,
     ],
   });
 

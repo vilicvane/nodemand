@@ -11,7 +11,7 @@ ${Chalk.green('OPTIONS')}
 
   --debounce <delay>  Debounce restart after change detection, defaults to 1000.
   --node-modules      Watch also files under node_modules (symbolic links will
-                      be resolved before filtering).
+                        be resolved before filtering).
   --help              Show this help content.
 `;
 
@@ -36,9 +36,11 @@ const OPTION_DEFINITION_MAP = new Map([
   ['no-color', true],
 ]);
 
-const args = process.argv.slice(2);
+let execArgv = [];
 
 let parsedOptionMap = new Map();
+
+let args = process.argv.slice(2);
 
 while (args.length) {
   let [arg] = args;
@@ -57,8 +59,9 @@ while (args.length) {
   let definition = OPTION_DEFINITION_MAP.get(option);
 
   if (!definition) {
-    console.error(Chalk.red(`Unknown option "${option}"`));
-    process.exit(1);
+    // Unknown option to nodemand, forward to Node.js.
+    execArgv.push(arg);
+    continue;
   }
 
   if (definition === true) {
@@ -100,6 +103,7 @@ if (!args.length) {
 
 let [modulePath, ...restArgs] = args;
 
+exports.execArgv = execArgv;
 exports.options = optionDict;
 exports.modulePath = Path.resolve(modulePath);
 exports.args = restArgs;

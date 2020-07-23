@@ -4,7 +4,7 @@
 
 Restart Node.js process on required modules change.
 
-A light-weight alternative to tools like `nodemon`, watches module files found in `require.cache` after start.
+A light-weight alternative to tools like `nodemon` and `node-dev`, watches module files found in `ESMLoader` after start.
 
 ## Installation
 
@@ -17,14 +17,20 @@ npm install --global nodemand
 ## Usage
 
 ```bash
+nodemand [options] <module-path> [...args]
+# example
 nodemand server.js
 ```
 
-## Help
+### Options
 
-```bash
-nodemand --help
-```
+- `--debounce <delay>`
+  Debounce restart after change detection, defaults to 1000.
+- `--node-modules`
+  Watch also files under node_modules (symbolic links will be resolved before filtering).
+- `--color`, `--no-color`
+  Force color or no color in console output.
+- Other Node.js command line options.
 
 ## License
 
