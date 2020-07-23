@@ -15,6 +15,7 @@ const {
 
 let subprocess;
 let exited;
+let exitedWithError;
 
 console.info(Chalk.yellow('[nodemand] start'));
 
@@ -24,15 +25,17 @@ process.on('SIGINT', onSignalToExit);
 process.on('SIGTERM', onSignalToExit);
 process.on('SIGHUP', onSignalToExit);
 
-function up() {
+function up(initialPaths = [modulePath]) {
   let timestamp = Date.now();
+
+  let addedPaths = [];
 
   let restartScheduled = false;
   let restartStarted = false;
 
   let restartScheduleDebounceTimer;
 
-  let watcher = Chokidar.watch([modulePath], {
+  let watcher = Chokidar.watch(initialPaths, {
     persistent: true,
   });
 
@@ -47,6 +50,7 @@ function up() {
   });
 
   exited = false;
+  exitedWithError = false;
 
   subprocess = ChildProcess.fork(modulePath, args, {
     stdio: 'inherit',
@@ -76,8 +80,10 @@ function up() {
     exited = true;
 
     if (typeof code === 'number') {
+      exitedWithError = code !== 0;
+
       console.info(
-        (code ? Chalk.red : Chalk.green)(
+        (exitedWithError ? Chalk.red : Chalk.green)(
           `[nodemand] process exited with code ${code}`,
         ),
       );
@@ -100,6 +106,8 @@ function up() {
     }
 
     watcher.add(paths);
+
+    addedPaths.push(...paths);
   }
 
   function scheduleRestart(path) {
@@ -134,7 +142,22 @@ function up() {
 
     console.info(Chalk.yellow('[nodemand] restart'));
 
-    up();
+    // 1. If a change leads to an error preventing CommonJS module from
+    //    initializing, we will not be able to fetch the module path again
+    //    after restart. Thus we need to add added paths as the next initial
+    //    paths.
+    // 2. And if the subprocess exited with error, it means the newly added
+    //    path might not be as complete as the previous initial paths. So we
+    //    put the previous initial paths together with added paths in this
+    //    case.
+    //
+    // ES modules are free from this defect.
+
+    let nextInitialPaths = exitedWithError
+      ? Array.from(new Set([...initialPaths, ...addedPaths]))
+      : addedPaths;
+
+    up(nextInitialPaths);
   }
 }
 

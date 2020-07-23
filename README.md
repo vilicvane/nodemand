@@ -34,6 +34,10 @@ nodemand server.js
   Force color or no color in console output.
 - Other Node.js command line options.
 
+## Caveats
+
+- It won't be able to know a CommonJS module if it failed to load at the beginning. This means if you have a CommonJS module with something like a syntax error at the first run, it will not be watched.
+
 ## License
 
 MIT License.
