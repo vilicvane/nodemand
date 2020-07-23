@@ -1,3 +1,8 @@
+if (!process.send) {
+  // This might be a worker thread.
+  return;
+}
+
 const Path = require('path');
 
 const INITIAL_MODULE_PATH_FETCH_TIMEOUT = 1000;
@@ -34,11 +39,11 @@ try {
 
 let reportedModulePathSet = new Set();
 
-setTimeout(reportModulePaths, INITIAL_MODULE_PATH_FETCH_TIMEOUT).unref();
+setTimeout(() => {
+  setInterval(() => reportModulePaths(), MODULE_PATH_FETCH_INTERVAL).unref();
+}, INITIAL_MODULE_PATH_FETCH_TIMEOUT).unref();
 
-setInterval(reportModulePaths, MODULE_PATH_FETCH_INTERVAL).unref();
-
-process.on('exit', reportModulePaths);
+process.on('exit', () => reportModulePaths());
 
 function reportModulePaths() {
   let paths = modulePathsFetcher().filter(
