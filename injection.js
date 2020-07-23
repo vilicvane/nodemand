@@ -4,7 +4,7 @@ const INITIAL_MODULE_PATH_FETCH_TIMEOUT = 1000;
 
 const MODULE_PATH_FETCH_INTERVAL = 5000;
 
-const FILE_PROTOCOL_PREFIX = 'file://';
+const FILE_PROTOCOL_PREFIX = 'file:///';
 
 const {ESMLoader} = require('internal/process/esm_loader');
 
@@ -18,11 +18,21 @@ process.on('exit', reportModulePaths);
 
 function reportModulePaths() {
   let paths = Array.from(ESMLoader.moduleMap.keys())
-    .map(uri =>
-      uri.startsWith(FILE_PROTOCOL_PREFIX)
-        ? Path.normalize(decodeURI(uri.slice(FILE_PROTOCOL_PREFIX.length)))
-        : undefined,
-    )
+    .map(uri => {
+      if (!uri.startsWith(FILE_PROTOCOL_PREFIX)) {
+        return undefined;
+      }
+
+      let path = Path.normalize(
+        decodeURI(uri.slice(FILE_PROTOCOL_PREFIX.length)),
+      );
+
+      if (!Path.isAbsolute(path)) {
+        path = `${Path.sep}${path}`;
+      }
+
+      return path;
+    })
     .filter(
       path => typeof path === 'string' && !reportedModulePathSet.has(path),
     );
