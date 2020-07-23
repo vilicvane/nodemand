@@ -9,8 +9,8 @@ let modulePathsFetcher;
 try {
   let {ESMLoader} = require('internal/process/esm_loader');
 
-  modulePathsFetcher = () => {
-    return Array.from(ESMLoader.moduleMap.keys())
+  modulePathsFetcher = () =>
+    Array.from(ESMLoader.moduleMap.keys())
       .map(url => {
         let {protocol, pathname} = new URL(url);
 
@@ -28,7 +28,6 @@ try {
         return path;
       })
       .filter(path => typeof path === 'string');
-  };
 } catch (error) {
   modulePathsFetcher = () => Object.keys(require.cache);
 }
