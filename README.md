@@ -4,7 +4,9 @@
 
 Restart Node.js process on required modules change.
 
-A light-weight alternative to tools like `nodemon` and `node-dev`, watches module files found in `ESMLoader` after start.
+A light-weight alternative to tools like `nodemon` and `node-dev`, watches module files found in `ESMLoader` after start and no modification is made to the runtime objects.
+
+It supports both ES module and CommonJS.
 
 ## Installation
 
