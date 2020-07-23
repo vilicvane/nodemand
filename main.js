@@ -24,11 +24,33 @@ process.on('SIGTERM', onSignalToExit);
 process.on('SIGHUP', onSignalToExit);
 
 function up() {
+  let timestamp = Date.now();
+
+  let restartScheduled = false;
+  let restartStarted = false;
+
+  let restartScheduleDebounceTimer;
+
+  let watcher = Chokidar.watch([modulePath], {
+    persistent: true,
+  });
+
+  watcher.on('add', (path, stats) => {
+    if (stats.mtimeMs >= timestamp) {
+      scheduleRestart(path);
+    }
+  });
+
+  watcher.on('change', path => {
+    scheduleRestart(path);
+  });
+
   exited = false;
 
   subprocess = ChildProcess.fork(modulePath, args, {
     stdio: 'inherit',
     execArgv: [
+      '--expose-internals',
       '--require',
       Path.join(__dirname, 'injection.js'),
       ...process.execArgv,
@@ -41,9 +63,8 @@ function up() {
     }
 
     switch (message.type) {
-      case 'setup': {
-        let paths = Array.from(new Set([modulePath, ...message.paths]));
-        setup(message.timestamp, paths);
+      case 'add-paths': {
+        addPaths(message.paths);
         break;
       }
     }
@@ -63,7 +84,11 @@ function up() {
     }
   });
 
-  function setup(timestamp, paths) {
+  function addPaths(paths) {
+    if (restartScheduled) {
+      return;
+    }
+
     paths = paths.filter(path =>
       Path.relative(__dirname, path).startsWith('..'),
     );
@@ -72,61 +97,42 @@ function up() {
       paths = paths.filter(path => !/[\\/]node_modules[\\/]/.test(path));
     }
 
-    let watcher = Chokidar.watch(paths, {
-      persistent: true,
-    });
+    watcher.add(paths);
+  }
 
-    watcher.on('add', (path, stats) => {
-      if (stats.mtimeMs < timestamp) {
-        return;
-      }
-
-      scheduleRestart(path);
-    });
-
-    watcher.on('change', path => {
-      scheduleRestart(path);
-    });
-
-    let restartScheduled = false;
-    let restartStarted = false;
-
-    let timer;
-
-    function scheduleRestart(path) {
-      if (restartStarted) {
-        return;
-      }
-
-      if (!restartScheduled) {
-        restartScheduled = true;
-
-        console.info(Chalk.yellow('[nodemand] restart scheduled'));
-      }
-
-      console.info(`  ${Chalk.dim(path)}`);
-
-      clearTimeout(timer);
-
-      timer = setTimeout(() => {
-        restart().catch(error => {
-          console.error(Chalk.red(error.message));
-          process.exit(1);
-        });
-      }, debounceDelay);
+  function scheduleRestart(path) {
+    if (restartStarted) {
+      return;
     }
 
-    async function restart() {
-      restartStarted = true;
+    if (!restartScheduled) {
+      restartScheduled = true;
 
-      await watcher.close();
-
-      await stopSubprocess();
-
-      console.info(Chalk.yellow('[nodemand] restart'));
-
-      up();
+      console.info(Chalk.yellow('[nodemand] restart scheduled'));
     }
+
+    console.info(`  ${Chalk.dim(path)}`);
+
+    clearTimeout(restartScheduleDebounceTimer);
+
+    restartScheduleDebounceTimer = setTimeout(() => {
+      restart().catch(error => {
+        console.error(Chalk.red(error.message));
+        process.exit(1);
+      });
+    }, debounceDelay);
+  }
+
+  async function restart() {
+    restartStarted = true;
+
+    await watcher.close();
+
+    await stopSubprocess();
+
+    console.info(Chalk.yellow('[nodemand] restart'));
+
+    up();
   }
 }
 
