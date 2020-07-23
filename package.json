@@ -1,6 +1,6 @@
 {
   "name": "nodemand",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Restart Node.js process on required modules change.",
   "repository": {
     "type": "git",
