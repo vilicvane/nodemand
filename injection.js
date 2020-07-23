@@ -4,7 +4,34 @@ const INITIAL_MODULE_PATH_FETCH_TIMEOUT = 1000;
 
 const MODULE_PATH_FETCH_INTERVAL = 5000;
 
-const FILE_PROTOCOL_PREFIX = 'file:///';
+let modulePathsFetcher;
+
+try {
+  let {ESMLoader} = require('internal/process/esm_loader');
+
+  modulePathsFetcher = () => {
+    return Array.from(ESMLoader.moduleMap.keys())
+      .map(url => {
+        let {protocol, pathname} = new URL(url);
+
+        if (protocol !== 'file:') {
+          return undefined;
+        }
+
+        let path = Path.normalize(decodeURI(pathname));
+
+        // On Windows it would be something like '\\C:\\foo.js'.
+        if (path.startsWith('\\')) {
+          path = path.slice(1);
+        }
+
+        return path;
+      })
+      .filter(path => typeof path === 'string');
+  };
+} catch (error) {
+  modulePathsFetcher = () => Object.keys(require.cache);
+}
 
 let reportedModulePathSet = new Set();
 
@@ -15,7 +42,7 @@ setInterval(reportModulePaths, MODULE_PATH_FETCH_INTERVAL).unref();
 process.on('exit', reportModulePaths);
 
 function reportModulePaths() {
-  let paths = fetchModulePaths().filter(
+  let paths = modulePathsFetcher().filter(
     path => !reportedModulePathSet.has(path),
   );
 
@@ -27,30 +54,4 @@ function reportModulePaths() {
     type: 'add-paths',
     paths,
   });
-}
-
-function fetchModulePaths() {
-  try {
-    const {ESMLoader} = require('internal/process/esm_loader');
-
-    return Array.from(ESMLoader.moduleMap.keys())
-      .map(uri => {
-        if (!uri.startsWith(FILE_PROTOCOL_PREFIX)) {
-          return undefined;
-        }
-
-        let path = Path.normalize(
-          decodeURI(uri.slice(FILE_PROTOCOL_PREFIX.length)),
-        );
-
-        if (!Path.isAbsolute(path)) {
-          path = `${Path.sep}${path}`;
-        }
-
-        return path;
-      })
-      .filter(path => typeof path === 'string');
-  } catch (error) {
-    return Object.keys(require.cache);
-  }
 }
