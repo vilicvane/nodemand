@@ -13,6 +13,8 @@ const {
   args,
 } = require('./@cli');
 
+const CHANGED_FILE_PRINTING_LIMIT = 10;
+
 let subprocess;
 let exited;
 let exitedWithError;
@@ -34,6 +36,8 @@ function up(initialPaths = [modulePath]) {
   let restartStarted = false;
 
   let restartScheduleDebounceTimer;
+
+  let changedFileCount = 0;
 
   let watcher = Chokidar.watch(initialPaths, {
     persistent: true,
@@ -121,7 +125,13 @@ function up(initialPaths = [modulePath]) {
       console.info(Chalk.yellow('[nodemand] restart scheduled'));
     }
 
-    console.info(`  ${Chalk.dim(path)}`);
+    changedFileCount++;
+
+    if (changedFileCount <= CHANGED_FILE_PRINTING_LIMIT) {
+      console.info(`  ${Chalk.dim(path)}`);
+    } else if (changedFileCount === CHANGED_FILE_PRINTING_LIMIT + 1) {
+      console.info(`  ${Chalk.dim('...')}`);
+    }
 
     clearTimeout(restartScheduleDebounceTimer);
 
