@@ -14,8 +14,8 @@ let modulePathsFetcher;
 try {
   let {ESMLoader} = require('internal/process/esm_loader');
 
-  modulePathsFetcher = () =>
-    Array.from(ESMLoader.moduleMap.keys())
+  modulePathsFetcher = () => [
+    ...Array.from(ESMLoader.moduleMap.keys())
       .map(url => {
         let {protocol, pathname} = new URL(url);
 
@@ -32,7 +32,9 @@ try {
 
         return path;
       })
-      .filter(path => typeof path === 'string');
+      .filter(path => typeof path === 'string'),
+    ...Object.keys(require.cache),
+  ];
 } catch (error) {
   modulePathsFetcher = () => Object.keys(require.cache);
 }
@@ -40,18 +42,24 @@ try {
 let reportedModulePathSet = new Set();
 
 setTimeout(() => {
+  reportModulePaths();
+
   setInterval(() => reportModulePaths(), MODULE_PATH_FETCH_INTERVAL).unref();
 }, INITIAL_MODULE_PATH_FETCH_TIMEOUT).unref();
 
 process.on('exit', () => reportModulePaths());
 
 function reportModulePaths() {
-  let paths = modulePathsFetcher().filter(
-    path => !reportedModulePathSet.has(path),
-  );
+  let paths = [];
 
-  for (let path of paths) {
+  for (let path of modulePathsFetcher()) {
+    if (reportedModulePathSet.has(path)) {
+      continue;
+    }
+
     reportedModulePathSet.add(path);
+
+    paths.push(path);
   }
 
   process.send({
