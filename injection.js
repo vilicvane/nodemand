@@ -15,7 +15,7 @@ try {
   let {ESMLoader, esmLoader} = require('internal/process/esm_loader');
 
   modulePathsFetcher = () => [
-    ...Array.from((ESMLoader ?? esmLoader).moduleMap.keys())
+    ...Array.from((ESMLoader || esmLoader).moduleMap.keys())
       .map(url => {
         let {protocol, pathname} = new URL(url);
 
