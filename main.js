@@ -53,6 +53,10 @@ function up(initialPaths = [modulePath]) {
     scheduleRestart(path);
   });
 
+  watcher.on('unlink', path => {
+    scheduleRestart(path);
+  });
+
   exited = false;
   exitedWithError = false;
 
@@ -152,14 +156,14 @@ function up(initialPaths = [modulePath]) {
 
     console.info(Chalk.yellow('[nodemand] restart'));
 
-    // 1. If a change leads to an error preventing CommonJS module from
-    //    initializing, we will not be able to fetch the module path again
-    //    after restart. Thus we need to add added paths as the next initial
-    //    paths.
-    // 2. And if the subprocess exited with error, it means the newly added
-    //    path might not be as complete as the previous initial paths. So we
-    //    put the previous initial paths together with added paths in this
-    //    case.
+    // 1. If a change to a module leads to an error prevents CommonJS module
+    //    from initializing, we will not be able to know the module (that causes
+    //    the error) path again after restart, thus we will not be able to
+    //    restart again after that module changes. So we need to add added paths
+    //    as the next initial paths.
+    // 2. And if the subprocess exited with error, it means the newly added path
+    //    might not be as complete as the previous initial paths. So we put the
+    //    previous initial paths together with added paths in this case.
     //
     // ES modules are free from this defect.
 
