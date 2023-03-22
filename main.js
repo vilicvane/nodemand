@@ -27,7 +27,7 @@ process.on('SIGINT', onSignalToExit);
 process.on('SIGTERM', onSignalToExit);
 process.on('SIGHUP', onSignalToExit);
 
-function up(initialPaths = [modulePath]) {
+function up(paths = []) {
   let timestamp = Date.now();
 
   let addedPaths = [];
@@ -39,9 +39,7 @@ function up(initialPaths = [modulePath]) {
 
   let changedFileCount = 0;
 
-  let watcher = Chokidar.watch(initialPaths, {
-    persistent: true,
-  });
+  let watcher = Chokidar.watch([modulePath, ...paths]);
 
   watcher.on('add', (path, stats) => {
     if (stats.mtimeMs >= timestamp) {
@@ -105,6 +103,7 @@ function up(initialPaths = [modulePath]) {
       return;
     }
 
+    // Exclude modules within nodemand itself.
     paths = paths.filter(path =>
       Path.relative(__dirname, path).startsWith('..'),
     );
@@ -156,22 +155,13 @@ function up(initialPaths = [modulePath]) {
 
     console.info(Chalk.yellow('[nodemand] restart'));
 
-    // 1. If a change to a module leads to an error prevents CommonJS module
-    //    from initializing, we will not be able to know the module (that causes
-    //    the error) path again after restart, thus we will not be able to
-    //    restart again after that module changes. So we need to add added paths
-    //    as the next initial paths.
-    // 2. And if the subprocess exited with error, it means the newly added path
-    //    might not be as complete as the previous initial paths. So we put the
-    //    previous initial paths together with added paths in this case.
-    //
-    // ES modules are free from this defect.
+    // If a change to a module leads to an error prevents CommonJS module from
+    // initializing, we will not be able to know the module (that causes the
+    // error) path again after restart, thus we will not be able to restart
+    // again after that module changes. So we need to add added paths as the
+    // next initial paths.
 
-    let nextInitialPaths = exitedWithError
-      ? Array.from(new Set([...initialPaths, ...addedPaths]))
-      : addedPaths;
-
-    up(nextInitialPaths);
+    up(exitedWithError ? addedPaths : []);
   }
 }
 

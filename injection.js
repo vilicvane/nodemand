@@ -5,6 +5,8 @@ if (!process.send) {
 
 const Path = require('path');
 
+const Chalk = require('chalk');
+
 const INITIAL_MODULE_PATH_FETCH_TIMEOUT = 1000;
 
 const MODULE_PATH_FETCH_INTERVAL = 5000;
@@ -42,17 +44,89 @@ try {
 let reportedModulePathSet = new Set();
 
 setTimeout(() => {
-  reportModulePaths();
+  reportLoadedModulePaths();
 
-  setInterval(() => reportModulePaths(), MODULE_PATH_FETCH_INTERVAL).unref();
+  setInterval(
+    () => reportLoadedModulePaths(),
+    MODULE_PATH_FETCH_INTERVAL,
+  ).unref();
 }, INITIAL_MODULE_PATH_FETCH_TIMEOUT).unref();
 
-process.on('exit', () => reportModulePaths());
+process.on('uncaughtExceptionMonitor', error => {
+  const modules = [];
 
-function reportModulePaths() {
-  let paths = [];
+  if (error instanceof SyntaxError) {
+    const [, module] = error.stack.match(/^(.+):\d+\n/) ?? [];
 
-  for (let path of modulePathsFetcher()) {
+    if (typeof module === 'string') {
+      modules.push(module);
+    }
+  } else {
+    switch (error.code) {
+      case 'MODULE_NOT_FOUND': {
+        // CommonJS module
+
+        const extensions = ['', ...Object.keys(require.extensions)];
+
+        const [, module] =
+          error.message.match(/^Cannot find module '(.+)'\n/) ?? [];
+
+        if (module === undefined) {
+          break;
+        }
+
+        const source = error.requireStack[0];
+
+        modules.push(
+          ...extensions.map(extension =>
+            Path.resolve(source, '..', module + extension),
+          ),
+        );
+
+        break;
+      }
+      case 'ERR_MODULE_NOT_FOUND': {
+        // ES module
+        const [, module] =
+          error.message.match(
+            /^Cannot find module '(.+?)' imported from .+$/,
+          ) ?? [];
+
+        if (module === undefined) {
+          break;
+        }
+
+        modules.push(module);
+
+        break;
+      }
+      default:
+        return;
+    }
+  }
+
+  if (modules.length === 0) {
+    console.warn(
+      Chalk.yellow(
+        '[nodemand] failed to extract module path from error message',
+      ),
+    );
+    return;
+  }
+
+  reportModulePaths(modules);
+});
+
+process.on('exit', () => reportLoadedModulePaths());
+
+function reportLoadedModulePaths() {
+  reportModulePaths(modulePathsFetcher());
+}
+
+function reportModulePaths(reportedPaths) {
+  const paths = [];
+
+  for (let path of reportedPaths) {
     if (reportedModulePathSet.has(path)) {
       continue;
     }
