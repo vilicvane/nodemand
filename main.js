@@ -161,7 +161,7 @@ function up(paths = []) {
     // again after that module changes. So we need to add added paths as the
     // next initial paths.
 
-    up(exitedWithError ? addedPaths : []);
+    up(exitedWithError ? [...paths, ...addedPaths] : addedPaths);
   }
 }
 

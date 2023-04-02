@@ -56,7 +56,7 @@ process.on('uncaughtExceptionMonitor', error => {
   const modules = [];
 
   if (error instanceof SyntaxError) {
-    const [, module] = error.stack.match(/^(.+):\d+\n/) ?? [];
+    const [, module] = error.stack.match(/^(.+):/) ?? [];
 
     if (typeof module === 'string') {
       modules.push(module);
@@ -69,7 +69,7 @@ process.on('uncaughtExceptionMonitor', error => {
         const extensions = ['', ...Object.keys(require.extensions)];
 
         const [, module] =
-          error.message.match(/^Cannot find module '(.+)'\n/) ?? [];
+          error.message.match(/^Cannot find module '(.+)'$/m) ?? [];
 
         if (module === undefined) {
           break;
@@ -89,7 +89,7 @@ process.on('uncaughtExceptionMonitor', error => {
         // ES module
         const [, module] =
           error.message.match(
-            /^Cannot find module '(.+?)' imported from .+$/,
+            /^Cannot find module '(.+?)' imported from .+$/m,
           ) ?? [];
 
         if (module === undefined) {
