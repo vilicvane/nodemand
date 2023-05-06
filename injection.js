@@ -77,11 +77,9 @@ process.on('uncaughtExceptionMonitor', error => {
 
         const source = error.requireStack[0];
 
-        modules.push(
-          ...extensions.map(extension =>
-            Path.resolve(source, '..', module + extension),
-          ),
-        );
+        const modulePath = Path.resolve(source, '..', module);
+
+        modules.push(...extensions.map(extension => modulePath + extension));
 
         break;
       }
