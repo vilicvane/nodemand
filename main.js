@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const ChildProcess = require('child_process');
+const FS = require('fs');
 const Path = require('path');
 
 const Chalk = require('chalk');
@@ -12,6 +13,7 @@ const {
   modulePath,
   args,
 } = require('./@cli');
+const {guessRealPath} = require('./@utils');
 
 const CHANGED_FILE_PRINTING_LIMIT = 10;
 const CWD = process.cwd();
@@ -36,7 +38,7 @@ async function up(pathSet = new Set()) {
 
   let restartScheduleDebounceTimer;
 
-  let changedFileCount = 0;
+  const changedPathSet = new Set();
 
   const nsfw = await NSFW(CWD, events => {
     for (let event of events) {
@@ -56,7 +58,9 @@ async function up(pathSet = new Set()) {
 
       const watchingPaths = [...pathSet, ...reportedPathSet];
 
-      for (const path of paths) {
+      for (let path of paths) {
+        path = guessRealPath(path);
+
         for (const watchingPath of watchingPaths) {
           // This handles platform specific stuffs like case sensitivity.
           if (Path.relative(path, watchingPath) === '') {
@@ -119,6 +123,14 @@ async function up(pathSet = new Set()) {
       return;
     }
 
+    paths = paths.map(path => {
+      try {
+        return FS.realpathSync(path);
+      } catch (error) {
+        return path;
+      }
+    });
+
     paths = paths.filter(
       path =>
         // Exclude nodemand modules.
@@ -151,12 +163,16 @@ async function up(pathSet = new Set()) {
       console.info(Chalk.yellow('[nodemand] restart scheduled'));
     }
 
-    changedFileCount++;
+    if (!changedPathSet.has(path)) {
+      changedPathSet.add(path);
 
-    if (changedFileCount <= CHANGED_FILE_PRINTING_LIMIT) {
-      console.info(`  ${Chalk.dim(path)}`);
-    } else if (changedFileCount === CHANGED_FILE_PRINTING_LIMIT + 1) {
-      console.info(`  ${Chalk.dim('...')}`);
+      const changedCount = changedPathSet.size;
+
+      if (changedCount <= CHANGED_FILE_PRINTING_LIMIT) {
+        console.info(`  ${Chalk.dim(path)}`);
+      } else if (changedCount === CHANGED_FILE_PRINTING_LIMIT + 1) {
+        console.info(`  ${Chalk.dim('...')}`);
+      }
     }
 
     clearTimeout(restartScheduleDebounceTimer);

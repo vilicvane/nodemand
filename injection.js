@@ -133,7 +133,7 @@ function reportLoadedModulePaths(initial = false) {
 function reportModulePaths(reportedPaths, initial = false) {
   const paths = [];
 
-  for (let path of reportedPaths) {
+  for (const path of reportedPaths) {
     if (reportedModulePathSet.has(path)) {
       continue;
     }
