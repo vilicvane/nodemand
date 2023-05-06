@@ -4,7 +4,7 @@ const ChildProcess = require('child_process');
 const Path = require('path');
 
 const Chalk = require('chalk');
-const Chokidar = require('chokidar');
+const NSFW = require('nsfw');
 
 const {
   execArgv,
@@ -14,6 +14,7 @@ const {
 } = require('./@cli');
 
 const CHANGED_FILE_PRINTING_LIMIT = 10;
+const CWD = process.cwd();
 
 let subprocess;
 let exited;
@@ -21,16 +22,14 @@ let exitedWithError;
 
 console.info(Chalk.yellow('[nodemand] start'));
 
-up();
+void up();
 
 process.on('SIGINT', onSignalToExit);
 process.on('SIGTERM', onSignalToExit);
 process.on('SIGHUP', onSignalToExit);
 
-function up(paths = []) {
-  let timestamp = Date.now();
-
-  let addedPaths = [];
+async function up(pathSet = new Set()) {
+  const reportedPathSet = new Set();
 
   let restartScheduled = false;
   let restartStarted = false;
@@ -39,21 +38,37 @@ function up(paths = []) {
 
   let changedFileCount = 0;
 
-  let watcher = Chokidar.watch([modulePath, ...paths]);
+  const nsfw = await NSFW(CWD, events => {
+    for (let event of events) {
+      let paths;
 
-  watcher.on('add', (path, stats) => {
-    if (stats.mtimeMs >= timestamp) {
-      scheduleRestart(path);
+      switch (event.action) {
+        case NSFW.actions.RENAMED:
+          paths = [
+            Path.join(event.directory, event.oldFile),
+            Path.join(event.newDirectory, event.newFile),
+          ];
+          break;
+        default:
+          paths = [Path.join(event.directory, event.file)];
+          break;
+      }
+
+      const watchingPaths = [...pathSet, ...reportedPathSet];
+
+      for (const path of paths) {
+        for (const watchingPath of watchingPaths) {
+          // This handles platform specific stuffs like case sensitivity.
+          if (Path.relative(path, watchingPath) === '') {
+            scheduleRestart(path);
+            break;
+          }
+        }
+      }
     }
   });
 
-  watcher.on('change', path => {
-    scheduleRestart(path);
-  });
-
-  watcher.on('unlink', path => {
-    scheduleRestart(path);
-  });
+  await nsfw.start();
 
   exited = false;
   exitedWithError = false;
@@ -76,7 +91,8 @@ function up(paths = []) {
 
     switch (message.type) {
       case 'add-paths': {
-        addPaths(message.paths);
+        addPaths(message.paths, message.initial);
+
         break;
       }
     }
@@ -98,23 +114,30 @@ function up(paths = []) {
     }
   });
 
-  function addPaths(paths) {
+  function addPaths(paths, initial) {
     if (restartScheduled) {
       return;
     }
 
-    // Exclude modules within nodemand itself.
-    paths = paths.filter(path =>
-      Path.relative(__dirname, path).startsWith('..'),
+    paths = paths.filter(
+      path =>
+        // Exclude nodemand modules.
+        Path.relative(__dirname, path).startsWith('..') ||
+        // Exclude paths outside of CWD.
+        Path.relative(CWD, path).startsWith('..'),
     );
 
     if (!toIncludeNodeModules) {
       paths = paths.filter(path => !/[\\/]node_modules[\\/]/.test(path));
     }
 
-    watcher.add(paths);
+    for (const path of paths) {
+      reportedPathSet.add(path);
+    }
 
-    addedPaths.push(...paths);
+    if (initial) {
+      pathSet.clear();
+    }
   }
 
   function scheduleRestart(path) {
@@ -149,19 +172,13 @@ function up(paths = []) {
   async function restart() {
     restartStarted = true;
 
-    await watcher.close();
+    await nsfw.stop();
 
     await stopSubprocess();
 
     console.info(Chalk.yellow('[nodemand] restart'));
 
-    // If a change to a module leads to an error prevents CommonJS module from
-    // initializing, we will not be able to know the module (that causes the
-    // error) path again after restart, thus we will not be able to restart
-    // again after that module changes. So we need to add added paths as the
-    // next initial paths.
-
-    up(exitedWithError ? [...paths, ...addedPaths] : addedPaths);
+    up(exitedWithError ? reportedPathSet : undefined);
   }
 }
 

@@ -19,6 +19,6 @@
   },
   "dependencies": {
     "chalk": "4",
-    "chokidar": "^3.5.3"
+    "nsfw": "^2.2.4"
   }
 }

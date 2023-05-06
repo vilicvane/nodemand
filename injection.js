@@ -44,7 +44,7 @@ try {
 let reportedModulePathSet = new Set();
 
 setTimeout(() => {
-  reportLoadedModulePaths();
+  reportLoadedModulePaths(true);
 
   setInterval(
     () => reportLoadedModulePaths(),
@@ -57,11 +57,10 @@ process.on('uncaughtExceptionMonitor', error => {
 
   if (error instanceof SyntaxError) {
     const [, module] = error.stack.match(/^(.+):/) ?? [];
-
     if (typeof module === 'string') {
       modules.push(module);
     }
-  } else {
+  } else if (error instanceof Error) {
     switch (error.code) {
       case 'MODULE_NOT_FOUND': {
         // CommonJS module
@@ -75,6 +74,8 @@ process.on('uncaughtExceptionMonitor', error => {
           break;
         }
 
+        modules.push(...error.requireStack);
+
         const source = error.requireStack[0];
 
         const modulePath = Path.resolve(source, '..', module);
@@ -85,21 +86,29 @@ process.on('uncaughtExceptionMonitor', error => {
       }
       case 'ERR_MODULE_NOT_FOUND': {
         // ES module
-        const [, module] =
+        const [, module, source] =
           error.message.match(
-            /^Cannot find module '(.+?)' imported from .+$/m,
+            /^Cannot find module '(.+?)' imported from (.+)$/m,
           ) ?? [];
 
         if (module === undefined) {
           break;
         }
 
+        modules.push(source);
         modules.push(module);
 
         break;
       }
-      default:
-        return;
+      default: {
+        let paths = error.stack?.match(/[^()]+(?=:\d+:\d+\)$)/gm) ?? [];
+
+        paths = paths.filter(path => Path.isAbsolute(path));
+
+        modules.push(...paths);
+
+        break;
+      }
     }
   }
 
@@ -117,11 +126,11 @@ process.on('uncaughtExceptionMonitor', error => {
 
 process.on('exit', () => reportLoadedModulePaths());
 
-function reportLoadedModulePaths() {
-  reportModulePaths(modulePathsFetcher());
+function reportLoadedModulePaths(initial = false) {
+  reportModulePaths(modulePathsFetcher(), initial);
 }
 
-function reportModulePaths(reportedPaths) {
+function reportModulePaths(reportedPaths, initial = false) {
   const paths = [];
 
   for (let path of reportedPaths) {
@@ -137,5 +146,6 @@ function reportModulePaths(reportedPaths) {
   process.send({
     type: 'add-paths',
     paths,
+    initial,
   });
 }
