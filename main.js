@@ -6,6 +6,7 @@ const Path = require('path');
 
 const Chalk = require('chalk');
 const NSFW = require('nsfw');
+const Tmp = require('tmp');
 
 const {
   execArgv,
@@ -77,6 +78,8 @@ async function up(pathSet = new Set()) {
   exited = false;
   exitedWithError = false;
 
+  const reportFilePath = Tmp.tmpNameSync();
+
   subprocess = ChildProcess.fork(modulePath, args, {
     stdio: 'inherit',
     execArgv: [
@@ -86,6 +89,10 @@ async function up(pathSet = new Set()) {
       '--require',
       Path.join(__dirname, 'injection.js'),
     ],
+    env: {
+      ...process.env,
+      NODEMAND_REPORT_FILE_PATH: reportFilePath,
+    },
   });
 
   subprocess.on('message', message => {
@@ -96,7 +103,6 @@ async function up(pathSet = new Set()) {
     switch (message.type) {
       case 'add-paths': {
         addPaths(message.paths, message.initial);
-
         break;
       }
     }
@@ -115,6 +121,14 @@ async function up(pathSet = new Set()) {
       );
     } else {
       console.info(Chalk.cyan('[nodemand] process exited'));
+    }
+
+    if (FS.existsSync(reportFilePath)) {
+      const paths = JSON.parse(FS.readFileSync(reportFilePath, 'utf8'));
+
+      addPaths(paths, false);
+
+      FS.unlinkSync(reportFilePath);
     }
   });
 

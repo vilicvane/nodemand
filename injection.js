@@ -3,11 +3,12 @@ if (!process.send) {
   return;
 }
 
+const FS = require('fs');
 const Path = require('path');
 
 const Chalk = require('chalk');
 
-const INITIAL_MODULE_PATH_FETCH_TIMEOUT = 1000;
+const {NODEMAND_REPORT_FILE_PATH} = process.env;
 
 const MODULE_PATH_FETCH_INTERVAL = 5000;
 
@@ -43,17 +44,8 @@ try {
 
 let reportedModulePathSet = new Set();
 
-setTimeout(() => {
-  reportLoadedModulePaths(true);
-
-  setInterval(
-    () => reportLoadedModulePaths(),
-    MODULE_PATH_FETCH_INTERVAL,
-  ).unref();
-}, INITIAL_MODULE_PATH_FETCH_TIMEOUT).unref();
-
 process.on('uncaughtExceptionMonitor', error => {
-  const modules = [];
+  const modules = modulePathsFetcher();
 
   if (error instanceof SyntaxError) {
     const [, module] = error.stack.match(/^(.+):/) ?? [];
@@ -124,7 +116,21 @@ process.on('uncaughtExceptionMonitor', error => {
   reportModulePaths(modules);
 });
 
-process.on('exit', () => reportLoadedModulePaths());
+process.on('exit', () => {
+  FS.writeFileSync(
+    NODEMAND_REPORT_FILE_PATH,
+    JSON.stringify(modulePathsFetcher()),
+  );
+});
+
+process.nextTick(() => {
+  reportLoadedModulePaths(true);
+
+  setInterval(
+    () => reportLoadedModulePaths(),
+    MODULE_PATH_FETCH_INTERVAL,
+  ).unref();
+});
 
 function reportLoadedModulePaths(initial = false) {
   reportModulePaths(modulePathsFetcher(), initial);
