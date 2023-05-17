@@ -9,6 +9,7 @@
   "bin": "main.js",
   "files": [
     "@cli.js",
+    "@utils.js",
     "injection.js",
     "main.js"
   ],
