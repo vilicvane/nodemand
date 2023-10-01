@@ -42,7 +42,7 @@ async function up(pathSet = new Set()) {
   const changedPathSet = new Set();
 
   const nsfw = await NSFW(CWD, events => {
-    for (let event of events) {
+    for (const event of events) {
       let paths;
 
       switch (event.action) {

@@ -21,7 +21,7 @@ const OPTION_DEFINITION_MAP = new Map([
     {
       default: 1000,
       cast: raw => {
-        let value = Number(raw);
+        const value = Number(raw);
 
         if (isNaN(value)) {
           throw `expecting a number but got ${JSON.stringify(raw)}`;
@@ -36,27 +36,27 @@ const OPTION_DEFINITION_MAP = new Map([
   ['no-color', true],
 ]);
 
-let execArgv = [];
+const execArgv = [];
 
-let parsedOptionMap = new Map();
+const parsedOptionMap = new Map();
 
-let args = process.argv.slice(2);
+const args = process.argv.slice(2);
 
 while (args.length) {
-  let [arg] = args;
+  const [arg] = args;
 
   if (!arg.startsWith('--')) {
     break;
   }
 
-  let option = args.shift().slice(2);
+  const option = args.shift().slice(2);
 
   if (option === 'help') {
     console.info(HELP);
     process.exit();
   }
 
-  let definition = OPTION_DEFINITION_MAP.get(option);
+  const definition = OPTION_DEFINITION_MAP.get(option);
 
   if (!definition) {
     // Unknown option to nodemand, forward to Node.js.
@@ -72,7 +72,7 @@ while (args.length) {
       process.exit(1);
     }
 
-    let raw = args.shift();
+    const raw = args.shift();
     let value;
 
     try {
@@ -86,9 +86,9 @@ while (args.length) {
   }
 }
 
-let optionDict = Object.create(null);
+const optionDict = Object.create(null);
 
-for (let [option, definition] of OPTION_DEFINITION_MAP) {
+for (const [option, definition] of OPTION_DEFINITION_MAP) {
   optionDict[option] = parsedOptionMap.has(option)
     ? parsedOptionMap.get(option)
     : definition === true
@@ -101,7 +101,7 @@ if (!args.length) {
   process.exit(1);
 }
 
-let [modulePath, ...restArgs] = args;
+const [modulePath, ...restArgs] = args;
 
 exports.execArgv = execArgv;
 exports.options = optionDict;

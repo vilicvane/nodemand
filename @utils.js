@@ -11,7 +11,7 @@ exports.guessRealPath = path => {
 
   while (current !== root) {
     try {
-      let realPath = FS.realpathSync(current);
+      const realPath = FS.realpathSync(current);
       return Path.join(realPath, base);
     } catch (error) {
       if (error.code !== 'ENOENT') {

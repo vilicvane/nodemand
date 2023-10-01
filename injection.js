@@ -15,12 +15,12 @@ const MODULE_PATH_FETCH_INTERVAL = 5000;
 let modulePathsFetcher;
 
 try {
-  let {ESMLoader, esmLoader} = require('internal/process/esm_loader');
+  const {ESMLoader, esmLoader} = require('internal/process/esm_loader');
 
   modulePathsFetcher = () => [
     ...Array.from((ESMLoader || esmLoader).moduleMap.keys())
       .map(url => {
-        let {protocol, pathname} = new URL(url);
+        const {protocol, pathname} = new URL(url);
 
         if (protocol !== 'file:') {
           return undefined;
@@ -42,7 +42,7 @@ try {
   modulePathsFetcher = () => Object.keys(require.cache);
 }
 
-let reportedModulePathSet = new Set();
+const reportedModulePathSet = new Set();
 
 process.on('uncaughtExceptionMonitor', error => {
   const modules = modulePathsFetcher();
