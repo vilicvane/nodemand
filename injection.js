@@ -15,10 +15,13 @@ const MODULE_PATH_FETCH_INTERVAL = 5000;
 let modulePathsFetcher;
 
 try {
-  const {ESMLoader, esmLoader} = require('internal/process/esm_loader');
+  const ESMLoader = require('internal/process/esm_loader');
+
+  const loader = ESMLoader.ESMLoader || ESMLoader.esmLoader;
+  const moduleMap = loader.moduleMap || loader.loadCache;
 
   modulePathsFetcher = () => [
-    ...Array.from((ESMLoader || esmLoader).moduleMap.keys())
+    ...Array.from(moduleMap.keys())
       .map(url => {
         const {protocol, pathname} = new URL(url);
 
